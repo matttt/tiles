@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, cloneElement } from 'react'
 
 interface GameProps {
     sideLength: number;
@@ -86,7 +86,7 @@ export function generateTileLayers({ width }: GenerateTileLayersInput) {
 
     const biggerSquiggleLayer = generateSquiggle({ width, widthDivider: 3.5, squiggleOffset: Math.PI / 2 })
 
-    return [
+    const layers = [
         outerSquiggle2,
         outerSquiggle,
         anothaOne3Layer,
@@ -97,6 +97,12 @@ export function generateTileLayers({ width }: GenerateTileLayersInput) {
         centerSquiggleLayer,
         anothaOne4Layer
     ]
+
+    // add key attributes to each layer, which are jsx elements
+
+    return layers.map((layer, i) => {
+        return cloneElement(layer, { key: i })
+    })
 }
 
 interface GenerateTileElementsInput {
@@ -130,8 +136,11 @@ function generateTileElements({
             classes += ' brightness-90'
         }
 
-        const tileElement = <g onClick={() => onClick(tile)} className={classes} transform={`translate(${x},${y})`} fill="white" stroke="black">
-            <rect width={squareSize} height={squareSize} fill="white" stroke="black" />
+        // lets get a checkered pattern going
+        const fill = (tile.i + tile.j) % 2 === 0 ? 'white' : 'EEEEEE'
+
+        const tileElement = <g key={`${tile.i}${tile.j}`} onClick={() => onClick(tile)} fill={'white'} className={classes} transform={`translate(${x},${y})`} stroke="black">
+            <rect width={squareSize} height={squareSize} fill={'white'} stroke="black" />
             {tileLayers}
         </g>
         tileElements.push(tileElement)
@@ -180,6 +189,8 @@ export function Game({ sideLength }: GameProps) {
     const [tiles, setTiles] = useState(initTiles)
     const [selected, setSelected] = useState<Tile[]>([])
     const [isClient, setIsClient] = useState(false)
+    const [currentCombo, setCurrentCombo] = useState(0)
+    const [bestCombo, setBestCombo] = useState(0)
 
     useEffect(() => {
         setIsClient(true)
@@ -191,34 +202,50 @@ export function Game({ sideLength }: GameProps) {
         } else if (selected.length === 1 && tile !== selected[0]) {
             setSelected([...selected, tile])
 
+            let hasMatch = false
             for (const l of Array.from(selected[0].layers)) {
                 if (tile.layers.has(l)) {
-                    const newTiles = tiles.map(t => {
-                        if (t === selected[0] || t === tile) {
-                            t.layers.delete(l)
-                        }
-                        return t
-                    })
+                    hasMatch = true
 
-                    break;
+                    selected[0].layers.delete(l)
+                    tile.layers.delete(l)
+
+                    // break;
                 }
             }
-            
-            setTiles(tiles=>tiles)
+
+            if (hasMatch) {
+                setCurrentCombo(currentCombo + 1)
+                if (currentCombo + 1 > bestCombo) {
+                    setBestCombo(currentCombo + 1)
+                }
+            }
+
+            setTiles(tiles => tiles)
             setTimeout(() => {
-                setSelected(selected=>[selected[1]])
+                setSelected(selected => [selected[1]])
             }, 500)
         }
     }
 
     const tileElements = generateTileElements({ tiles, sideLength, cols: COLS, rows: ROWS, layers, onClick, selected })
 
-    return isClient && <div className='border'>
+    return isClient && <div className=''>
         <svg style={outerStyle}>
-            <g>
-                {tileElements}
-            </g>
-
+            {tileElements}
         </svg>
+        <div className='w-full flex space-x-4 mt-5'>
+            <div className='grow'></div>
+            <div>
+                <p>Current Combo</p>
+                <h2 className='text-center text-xl text-bold'> {currentCombo}</h2>
+            </div>
+            <div className='grow'></div>
+            <div>
+                <p>Best Combo</p>
+                <p className='text-center text-xl text-bold'> {bestCombo}</p>
+            </div>
+            <div className='grow'></div>
+        </div>
     </div>
 }
