@@ -76,10 +76,13 @@ interface GenerateTileLayersInput {
 }
 export function generateTileLayers({ width }: GenerateTileLayersInput) {
     const outerSquiggle = generateSquiggle({ width, numSquiggles: 16, squiggleDivider: 48, widthDivider: 2.5, stroke: 'none', squiggleOffset: Math.PI / 2, fill: BLUE })
+    const outerSquiggle2 = generateSquiggle({ width, numSquiggles: 16, squiggleDivider: 48, widthDivider: 2.3, stroke: LAVENDER, squiggleOffset: Math.PI / 2, fill: 'none' })
     const centerSquiggleLayer = generateSquiggle({ width, numSquiggles: 4, squiggleDivider: 24, widthDivider: 12, stroke: PURPLE, squiggleOffset: Math.PI / 2, fill: BLUE })
     const anothaOneLayer = generateSquiggle({ width, numSquiggles: 4, squiggleDivider: 24, widthDivider: 6, stroke: PURPLE, fill: 'E7E7E7', squiggleOffset: Math.PI / 2 })
     const anothaOne2Layer = generateSquiggle({ width, numSquiggles: 4, squiggleDivider: -8, widthDivider: 4, stroke: 'none', fill: LAVENDER, squiggleOffset: Math.PI / 2 })
+    const anothaOne22Layer = generateSquiggle({ width, numSquiggles: 4, squiggleDivider: -8, widthDivider: 5.5, stroke: 'white', fill: BLUE, squiggleOffset: Math.PI / 2 })
     const anothaOne3Layer = generateSquiggle({ width, numSquiggles: 4, squiggleDivider: -7.5, widthDivider: 6, stroke: PURPLE, fill: 'E7E7E7', squiggleOffset: Math.PI / 2 + Math.PI })
+    const anothaOne4Layer = generateSquiggle({ width, numSquiggles: 0, squiggleDivider: 5, widthDivider: 6, stroke: PURPLE, fill: 'E7E7E7', squiggleOffset: Math.PI / 2 + Math.PI })
 
     const biggerSquiggleLayer = generateSquiggle({ width, widthDivider: 3.5, squiggleOffset: Math.PI / 2 })
 
@@ -153,7 +156,6 @@ function addLayerPair(tiles: Tile[], layers: any[]) {
         return addLayerPair(tiles, layers)
     }
 
-
     for (const t of tiles) {
         if (t === tile1 || t === tile2) {
             t.layers.add(newLayerIdx)
@@ -170,7 +172,7 @@ export function Game({ sideLength }: GameProps) {
     const layers = generateTileLayers({ width: sideLength / (ROWS - 1) })
     const initTiles = generateTiles({ cols: COLS, rows: ROWS });
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 50; i++) {
         addLayerPair(initTiles, layers)
     }
 
@@ -185,7 +187,7 @@ export function Game({ sideLength }: GameProps) {
     function onClick(tile: Tile) {
         if (selected.length === 0) {
             setSelected([...selected, tile])
-        } else if (selected.length === 1) {
+        } else if (selected.length === 1 && tile !== selected[0]) {
             setSelected([...selected, tile])
 
             for (const l of Array.from(selected[0].layers)) {
@@ -197,10 +199,11 @@ export function Game({ sideLength }: GameProps) {
                         return t
                     })
 
-                    setTiles(newTiles)
+                    break;
                 }
             }
-
+            
+            setTiles(tiles=>tiles)
             setTimeout(() => {
                 setSelected(selected => [selected[1]])
             }, 500)
