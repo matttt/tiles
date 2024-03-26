@@ -86,7 +86,17 @@ export function generateTileLayers({ width }: GenerateTileLayersInput) {
 
     const biggerSquiggleLayer = generateSquiggle({ width, widthDivider: 3.5, squiggleOffset: Math.PI / 2 })
 
-    const layers = [outerSquiggle, centerSquiggleLayer, anothaOneLayer, anothaOne2Layer, anothaOne3Layer, biggerSquiggleLayer]
+    const layers = [
+        outerSquiggle2,
+        outerSquiggle,
+        anothaOne3Layer,
+        anothaOne2Layer,
+        anothaOne22Layer,
+        biggerSquiggleLayer,
+        anothaOneLayer,
+        centerSquiggleLayer,
+        anothaOne4Layer
+    ]
 
     // add key attributes to each layer, which are jsx elements
 
@@ -179,6 +189,8 @@ export function Game({ sideLength }: GameProps) {
     const [tiles, setTiles] = useState(initTiles)
     const [selected, setSelected] = useState<Tile[]>([])
     const [isClient, setIsClient] = useState(false)
+    const [currentCombo, setCurrentCombo] = useState(0)
+    const [bestCombo, setBestCombo] = useState(0)
 
     useEffect(() => {
         setIsClient(true)
@@ -190,20 +202,26 @@ export function Game({ sideLength }: GameProps) {
         } else if (selected.length === 1 && tile !== selected[0]) {
             setSelected([...selected, tile])
 
+            let hasMatch = false
             for (const l of Array.from(selected[0].layers)) {
                 if (tile.layers.has(l)) {
-                    const newTiles = tiles.map(t => {
-                        if (t === selected[0] || t === tile) {
-                            t.layers.delete(l)
-                        }
-                        return t
-                    })
+                    hasMatch = true
 
-                    break;
+                    selected[0].layers.delete(l)
+                    tile.layers.delete(l)
+
+                    // break;
                 }
             }
-            
-            setTiles(tiles=>tiles)
+
+            if (hasMatch) {
+                setCurrentCombo(currentCombo + 1)
+                if (currentCombo + 1 > bestCombo) {
+                    setBestCombo(currentCombo + 1)
+                }
+            }
+
+            setTiles(tiles => tiles)
             setTimeout(() => {
                 setSelected(selected => [selected[1]])
             }, 500)
@@ -212,9 +230,22 @@ export function Game({ sideLength }: GameProps) {
 
     const tileElements = generateTileElements({ tiles, sideLength, cols: COLS, rows: ROWS, layers, onClick, selected })
 
-    return isClient && <div className='border'>
+    return isClient && <div className=''>
         <svg style={outerStyle}>
             {tileElements}
         </svg>
+        <div className='w-full flex space-x-4 mt-5'>
+            <div className='grow'></div>
+            <div>
+                <p>Current Combo</p>
+                <h2 className='text-center text-xl text-bold'> {currentCombo}</h2>
+            </div>
+            <div className='grow'></div>
+            <div>
+                <p>Best Combo</p>
+                <p className='text-center text-xl text-bold'> {bestCombo}</p>
+            </div>
+            <div className='grow'></div>
+        </div>
     </div>
 }
