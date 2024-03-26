@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, cloneElement } from 'react'
 
 interface GameProps {
     sideLength: number;
@@ -83,14 +83,13 @@ export function generateTileLayers({ width }: GenerateTileLayersInput) {
 
     const biggerSquiggleLayer = generateSquiggle({ width, widthDivider: 3.5, squiggleOffset: Math.PI / 2 })
 
-    return [
-        outerSquiggle,
-        anothaOne3Layer,
-        anothaOne2Layer,
-        biggerSquiggleLayer,
-        anothaOneLayer,
-        centerSquiggleLayer,
-    ]
+    const layers = [outerSquiggle, centerSquiggleLayer, anothaOneLayer, anothaOne2Layer, anothaOne3Layer, biggerSquiggleLayer]
+
+    // add key attributes to each layer, which are jsx elements
+
+    return layers.map((layer, i) => {
+        return cloneElement(layer, { key: i })
+    })
 }
 
 interface GenerateTileElementsInput {
@@ -124,8 +123,11 @@ function generateTileElements({
             classes += ' brightness-90'
         }
 
-        const tileElement = <g onClick={() => onClick(tile)} className={classes} transform={`translate(${x},${y})`} fill="white" stroke="black">
-            <rect width={squareSize} height={squareSize} fill="white" stroke="black" />
+        // lets get a checkered pattern going
+        const fill = (tile.i + tile.j) % 2 === 0 ? 'white' : 'EEEEEE'
+
+        const tileElement = <g key={`${tile.i}${tile.j}`} onClick={() => onClick(tile)} fill={'white'} className={classes} transform={`translate(${x},${y})`} stroke="black">
+            <rect width={squareSize} height={squareSize} fill={'white'} stroke="black" />
             {tileLayers}
         </g>
         tileElements.push(tileElement)
@@ -200,7 +202,7 @@ export function Game({ sideLength }: GameProps) {
             }
 
             setTimeout(() => {
-                setSelected(selected=>[selected[1]])
+                setSelected(selected => [selected[1]])
             }, 500)
         }
     }
@@ -209,10 +211,7 @@ export function Game({ sideLength }: GameProps) {
 
     return isClient && <div className='border'>
         <svg style={outerStyle}>
-            <g>
-                {tileElements}
-            </g>
-
+            {tileElements}
         </svg>
     </div>
 }
