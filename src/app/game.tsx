@@ -1,4 +1,8 @@
 import { useState, useEffect, cloneElement } from 'react'
+import confetti from 'canvas-confetti'
+import { useSpring, animated } from '@react-spring/web'
+
+
 
 interface GameProps {
     sideLength: number;
@@ -8,6 +12,7 @@ interface Tile {
     i: number
     j: number
     layers: Set<number>
+    goAnywhere: boolean
 }
 
 const BLACK = '#080705';
@@ -27,7 +32,8 @@ function generateTiles({ cols, rows }: GenerateTilesInput): Tile[] {
             const tile = {
                 i,
                 j,
-                layers: new Set<number>()
+                layers: new Set<number>(),
+                goAnywhere: false
             }
             tiles.push(tile)
         }
@@ -128,20 +134,32 @@ function generateTileElements({
     for (const tile of tiles) {
         const x = tile.i * squareSize + 1
         const y = tile.j * squareSize + 1
-        const tileLayers = layers.filter((_, i) => tile.layers.has(i))
+        // const tileLayers = layers.filter((_, i) => tile.layers.has(i))
 
-        let classes = 'hover:brightness-90'
+        const layerWrappers = []
 
-        if (selected.find(t => t.i === tile.i && t.j === tile.j)) {
-            classes += ' brightness-90'
+        for (let i = 0; i < layers.length; i++) {
+            console.log(i)
+            if (tile.layers.has(i)) {
+                layerWrappers.push(<g key={i}>{layers[i]}</g>)
+            } else {
+                layerWrappers.push(<g key={i} style={{ transformOrigin: `${squareSize / 2}px ${squareSize / 2}px` }} className={`transition-transform scale-0`}>{layers[i]}</g>)
+            }
         }
 
-        // lets get a checkered pattern going
-        const fill = (tile.i + tile.j) % 2 === 0 ? 'white' : 'EEEEEE'
+        let classes = 'md:hover:brightness-90'
 
-        const tileElement = <g key={`${tile.i}${tile.j}`} onClick={() => onClick(tile)} fill={'white'} className={classes} transform={`translate(${x},${y})`} stroke="black">
-            <rect width={squareSize} height={squareSize} fill={'white'} stroke="black" />
-            {tileLayers}
+        let rectClasses = ''
+
+        const isSelected = selected.find(t => t.i === tile.i && t.j === tile.j)
+
+        // lets get a checkered pattern going
+        // const fill = (tile.i + tile.j) % 2 === 0 ? 'white' : 'EEEEEE'
+
+        const tileElement = <g key={`${tile.i}${tile.j}`} onClick={() => onClick(tile)} fill={'white'} className={classes} transform={`translate(${x},${y})`}>
+            <rect width={squareSize} height={squareSize} className={rectClasses} fill={'white'} stroke="none" />
+            {isSelected && <rect x={1} y={1} width={squareSize - 3} height={squareSize - 3} fill='none' stroke={PURPLE} strokeWidth={3} className={tile.goAnywhere ? 'marching-ants' : ''} />}
+            {layerWrappers}
         </g>
         tileElements.push(tileElement)
     }
@@ -191,10 +209,23 @@ export function Game({ sideLength }: GameProps) {
     const [isClient, setIsClient] = useState(false)
     const [currentCombo, setCurrentCombo] = useState(0)
     const [bestCombo, setBestCombo] = useState(0)
+    const [snackbarText, setSnackbarText] = useState('filler')
 
     useEffect(() => {
         setIsClient(true)
     }, [])
+
+    const [snackbarSprings, snackbarApi] = useSpring(() => ({
+        from: { y: 0, opacity: 0 },
+    }))
+
+    function showSnackbar(text: string) {
+        setSnackbarText(text)
+        snackbarApi.start({
+            to: [{ opacity: 1, y: -10 }, { opacity: 0, delay: 500 }],
+            from: { y: 0, opacity: 0 }
+        })
+    }
 
     function onClick(tile: Tile) {
         if (selected.length === 0) {
@@ -209,8 +240,6 @@ export function Game({ sideLength }: GameProps) {
 
                     selected[0].layers.delete(l)
                     tile.layers.delete(l)
-
-                    // break;
                 }
             }
 
@@ -219,18 +248,49 @@ export function Game({ sideLength }: GameProps) {
                 if (currentCombo + 1 > bestCombo) {
                     setBestCombo(currentCombo + 1)
                 }
+
+                if (tile.layers.size === 0) {
+                    tile.goAnywhere = true;
+                    selected[0].goAnywhere = false;
+                    showSnackbar('Go anywhere!')
+                    // addLayerPair(tiles, layers)
+                }
+            } else if (selected[0].layers.size !== 0) {
+                showSnackbar('No match!')
+                setCurrentCombo(0)
             }
 
             setTiles(tiles => tiles)
-            setTimeout(() => {
-                setSelected(selected => [selected[1]])
-            }, 500)
+            setSelected(selected => [selected[1]])
+            // setTimeout(() => {
+            // }, 500)
         }
     }
 
     const tileElements = generateTileElements({ tiles, sideLength, cols: COLS, rows: ROWS, layers, onClick, selected })
 
+    let isSolved = true
+
+    for (const tile of tiles) {
+        if (tile.layers.size > 0) {
+            isSolved = false
+        }
+    }
+
+    if (isSolved) {
+        setTimeout(() => confetti({ origin: { x: .5, y: -.5 }, angle: 270 }), 500)
+
+    }
+
+
+
     return isClient && <div className=''>
+        <div className='w-full flex'>
+            <div className='grow'></div>
+            <animated.div className={`px-3 py-2 border border-gray-300 rounded mx-auto`} style={{ ...snackbarSprings }}>{snackbarText}</animated.div>
+            <div className='grow'></div>
+        </div>
+        <div className='h-5'></div>
         <svg style={outerStyle}>
             {tileElements}
         </svg>
@@ -247,5 +307,6 @@ export function Game({ sideLength }: GameProps) {
             </div>
             <div className='grow'></div>
         </div>
+        <div className="h-5"></div>
     </div>
 }
