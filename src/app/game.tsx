@@ -2,8 +2,6 @@ import { useState, useEffect, cloneElement } from 'react'
 import confetti from 'canvas-confetti'
 import { useSpring, animated } from '@react-spring/web'
 
-
-
 interface GameProps {
     sideLength: number;
 }
@@ -139,7 +137,6 @@ function generateTileElements({
         const layerWrappers = []
 
         for (let i = 0; i < layers.length; i++) {
-            console.log(i)
             if (tile.layers.has(i)) {
                 layerWrappers.push(<g key={i}>{layers[i]}</g>)
             } else {
